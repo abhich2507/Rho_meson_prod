@@ -19,18 +19,20 @@ void rhoClass1::Loop()
    Long64_t nentries = fChain->GetEntriesFast();
 
    Long64_t nbytes = 0, nb = 0;
-   double nmin=0.5 ;
-   double nmax=1.2 ;
+   double nmin=0. ;
+   double nmax=2 ;
    int nbins=40;
+
   TH1D *hMasspm = new TH1D("hMasspm","hMass",nbins,nmin,nmax); //histogram for invariant mass
   TH1D *hMasspp = new TH1D("hMasspp","hMass",nbins,nmin,nmax); //histogram for invariant mass
   TH1D *hMassmm = new TH1D("hMassmm","hMass",nbins,nmin,nmax); //histogram for invariant mass
 
+  hMasspm->Sumw2(kTRUE);
+  hMasspp->Sumw2(kTRUE);
+  hMasspm->Sumw2(kTRUE);
+
   TH1D *hMasspp_new = new TH1D("hMasspp_new","hMass",nbins,nmin,nmax); //histogram for invariant mass
 
-//  hMasspm->Sumw2(kTRUE);
-//  hMasspp->Sumw2(kTRUE);
-//  hMassmm->Sumw2(kTRUE);
 
 //histarray
   int nHistograms = 5; 
@@ -95,7 +97,7 @@ for (int i = 0; i < nHistograms; ++i) {
    Double_t mass;
 
    double rmin1=0.e6 ;
-   double rmax1=1.e7;
+   double rmax1=1.e6;
 
 
    for (Long64_t jentry=rmin1; jentry<rmax1;jentry++) {
@@ -129,8 +131,8 @@ for (int i = 0; i < nHistograms; ++i) {
 
          //track cuts
          if (pcharge[i] == 0) continue;
-         if (TMath::Abs(eta[i])>0.8) continue;
-         if ( pt[i]<0.015) continue;
+         if (TMath::Abs(eta[i])>1) continue;
+         if ( pt[i]<0.5 || pt[i]>11) continue;
          sumPt += pt[i];
 
          sumoftracks+=1;
