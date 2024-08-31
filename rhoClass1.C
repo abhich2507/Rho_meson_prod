@@ -7,6 +7,22 @@
 #include <TLorentzVector.h>
 // #include "SpherocityCalculator.hh"
 
+void sqrt(TH1* h) {
+  float c,e;
+  float c1,e1;
+  for (int i=1; i<=h->GetNbinsX(); i++) {
+    c1=0.;
+    e1=0.;
+    c = h->GetBinContent(i);
+    e = h->GetBinError(i);
+    if (c>0.) {
+      c1 = sqrt(c);
+      e1 = 0.5/sqrt(c)*e;
+      h->SetBinContent(i,c1);
+      h->SetBinError(i,e1);
+    }
+  }
+}
 
 
 void rhoClass1::Loop()
@@ -21,15 +37,18 @@ void rhoClass1::Loop()
    Long64_t nbytes = 0, nb = 0;
    double nmin=0. ;
    double nmax=2 ;
-   int nbins=40;
+   int nbins=80;
 
-  TH1D *hMasspm = new TH1D("hMasspm","hMass",nbins,nmin,nmax); //histogram for invariant mass
-  TH1D *hMasspp = new TH1D("hMasspp","hMass",nbins,nmin,nmax); //histogram for invariant mass
-  TH1D *hMassmm = new TH1D("hMassmm","hMass",nbins,nmin,nmax); //histogram for invariant mass
+   double pmin=0.5;
+   double pmax=10.5;
+   int pbins=20;
 
-  hMasspm->Sumw2(kTRUE);
-  hMasspp->Sumw2(kTRUE);
-  hMasspm->Sumw2(kTRUE);
+  TH2D *hMasspm = new TH2D("hMasspm","hMass",nbins,nmin,nmax,pbins,pmin,pmax); //histogram for invariant mass
+  TH2D *hMasspp = new TH2D("hMasspp","hMass",nbins,nmin,nmax,pbins,pmin,pmax); //histogram for invariant mass
+  TH2D *hMassmm = new TH2D("hMassmm","hMass",nbins,nmin,nmax,pbins,pmin,pmax); //histogram for invariant mass
+
+
+  
 
   TH1D *hMasspp_new = new TH1D("hMasspp_new","hMass",nbins,nmin,nmax); //histogram for invariant mass
 
@@ -39,9 +58,6 @@ void rhoClass1::Loop()
 //   double binRanges[6] = {0.0, .2, .4, .6, .8, 1.0};
 int mbins;
 mbins=nbins;
-int pbins=20;
-
-
 
 
 // Create an array of TH1D histograms
@@ -97,7 +113,7 @@ for (int i = 0; i < nHistograms; ++i) {
    Double_t mass;
 
    double rmin1=0.e6 ;
-   double rmax1=1.e6;
+   double rmax1=1.e5;
 
 
    for (Long64_t jentry=rmin1; jentry<rmax1;jentry++) {
@@ -203,24 +219,9 @@ for (int i = 0; i < nHistograms; ++i) {
    
    
 
-      if (vP4_piPlus.size() == 0 || vP4_piMinus.size() == 0) continue;
+      // if (vP4_piPlus.size() == 0 || vP4_piMinus.size() == 0) continue;
 
-         for (int i = 0; i < vP4_piMinus.size(); i++) {
-         for (int j = 0; j < vP4_piPlus.size(); j++) {
-      
-            ROOT::Math::PxPyPzEVector vP4_sum = vP4_piMinus[i] +vP4_piPlus[j];
-            double mass= vP4_sum.M();
-             if (mass>nmin && mass<nmax){
-            if (Spherocity>=0. && Spherocity<=0.2) histArraypm[0]->Fill(mass);
-            if (Spherocity>0.2 && Spherocity<=0.4) histArraypm[1]->Fill(mass);
-            if (Spherocity>0.4 && Spherocity<=0.6) histArraypm[2]->Fill(mass);
-            if (Spherocity>0.6 && Spherocity<=0.8) histArraypm[3]->Fill(mass);
-            if (Spherocity>0.8 && Spherocity<=1.0) histArraypm[4]->Fill(mass);
-            
-            hMasspm->Fill(mass);    }
-             
-         } 
-      }
+         
      
 
       for (int i = 0; i < vP4_piMinus.size(); i++) {
@@ -228,7 +229,8 @@ for (int i = 0; i < nHistograms; ++i) {
             
             ROOT::Math::PxPyPzEVector vP4_sum = vP4_piMinus[i] + vP4_piMinus[j];
             double mass= vP4_sum.M();
-            if (mass>nmin && mass<nmax){
+            double rho_pt= vP4_sum.Pt();
+            if (mass>nmin && mass<nmax && rho_pt>pmin && rho_pt<pmax){
 
             if (Spherocity>=0. && Spherocity<=0.2) histArraymm[0]->Fill(mass);
             if (Spherocity>0.2 && Spherocity<=0.4) histArraymm[1]->Fill(mass);
@@ -237,7 +239,7 @@ for (int i = 0; i < nHistograms; ++i) {
             if (Spherocity>0.8 && Spherocity<=1.0) histArraymm[4]->Fill(mass);
 
             
-             hMassmm->Fill(mass); }
+             hMassmm->Fill(mass,rho_pt); }
        
            
          } 
@@ -250,7 +252,8 @@ for (int i = 0; i < nHistograms; ++i) {
 
             ROOT::Math::PxPyPzEVector vP4_sum = vP4_piPlus[i] + vP4_piPlus[j];
             double mass= vP4_sum.M();
-            if (mass>nmin && mass<nmax){
+            double rho_pt= vP4_sum.Pt();
+            if (mass>nmin && mass<nmax && rho_pt>pmin && rho_pt<pmax){
 
             if (Spherocity>=0. && Spherocity<=0.2) histArraypp[0]->Fill(mass);
             if (Spherocity>0.2 && Spherocity<=0.4) histArraypp[1]->Fill(mass);
@@ -259,8 +262,26 @@ for (int i = 0; i < nHistograms; ++i) {
             if (Spherocity>0.8 && Spherocity<=1.0) histArraypp[4]->Fill(mass);
 
 
-           hMasspp->Fill(mass); }
+           hMasspp->Fill(mass,rho_pt); }
            
+         } 
+      }
+
+      for (int i = 0; i < vP4_piMinus.size(); i++) {
+         for (int j = 0; j < vP4_piPlus.size(); j++) {
+      
+            ROOT::Math::PxPyPzEVector vP4_sum = vP4_piMinus[i] +vP4_piPlus[j];
+            double mass= vP4_sum.M();
+            double rho_pt= vP4_sum.Pt();
+             if (mass>nmin && mass<nmax && rho_pt>pmin && rho_pt<pmax){
+            if (Spherocity>=0. && Spherocity<=0.2) histArraypm[0]->Fill(mass);
+            if (Spherocity>0.2 && Spherocity<=0.4) histArraypm[1]->Fill(mass);
+            if (Spherocity>0.4 && Spherocity<=0.6) histArraypm[2]->Fill(mass);
+            if (Spherocity>0.6 && Spherocity<=0.8) histArraypm[3]->Fill(mass);
+            if (Spherocity>0.8 && Spherocity<=1.0) histArraypm[4]->Fill(mass);
+            
+            hMasspm->Fill(mass,rho_pt);    }
+             
          } 
       }
 
@@ -310,7 +331,21 @@ for (int i = 0; i < nHistograms; ++i) {
     histArraypm[i]->Draw("E3");
     histArraypm[i]->Write();
 
-                                 }
+                      }//end of loop
+
+   TH1D* hProjpp = hMasspp->ProjectionX("hProjpp",0,1);
+   TH1D* hProjmm = hMassmm->ProjectionX("hProjmm",0,1);
+   TH1D* hProjpm = hMasspm->ProjectionX("hProjpm",0,1); 
+
+   hProjpp->Sumw2(kTRUE);
+   hProjmm->Sumw2(kTRUE);
+   hProjpm->Sumw2(kTRUE);
+
+   hProjpp->Multiply(hProjmm);
+   sqrt(hProjpp);
+  
+   hProjpm->Add(hProjpp,-2.);
+   hProjpm->Write();
 
 
    hMasspp->Multiply(hMassmm);
@@ -320,8 +355,9 @@ for (int i = 0; i < nHistograms; ++i) {
                                                               }
 
   
-   hMasspp->Scale(2.);
-   hMasspm->Add(hMasspp,-1.);
+   
+   hMasspm->Add(hMasspp,-2.);
+   
    hMasspm->GetXaxis()->SetTitle("m_{#pi^{-}#pi^{+}} (GeV)");
    hMasspm->GetYaxis()->SetTitle("Frequency");
    hMasspm->SetTitle("Invariant mass of #pi^{-}#pi^{+} pairs");
@@ -337,6 +373,7 @@ for (int i = 0; i < nHistograms; ++i) {
    hMassmm->Write();
    hMasspp->Write();
    hMasspm->Write();
+   
     
     
    //  std::string canvasName = c1->GetName();
