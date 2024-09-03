@@ -113,7 +113,7 @@ for (int i = 0; i < nHistograms; ++i) {
    Double_t mass;
 
    double rmin1=0.e6 ;
-   double rmax1=1.e7;
+   double rmax1=9.e6;
 
 
    for (Long64_t jentry=rmin1; jentry<rmax1;jentry++) {
@@ -123,7 +123,7 @@ for (int i = 0; i < nHistograms; ++i) {
       nb = fChain->GetEntry(jentry);   nbytes += nb;
       // if (Cut(ientry) < 0) continue;
       if (jentry%50000 == 0) cout << "Processing event " << jentry << endl;
-      if (nTracks <5) continue;
+      if (nTracks <15) continue;
 
       std::vector<double> ratiosqaure ;
       std::vector<double> vecPx;
@@ -147,8 +147,8 @@ for (int i = 0; i < nHistograms; ++i) {
 
          //track cuts
          if (pcharge[i] == 0) continue;
-         if (TMath::Abs(eta[i])>1) continue;
-         if ( pt[i]<0.15 || pt[i]>11) continue;
+         if (TMath::Abs(eta[i])>0.8) continue;
+         if ( pt[i]<0.3 || pt[i]>11) continue;
          sumPt += pt[i];
 
          sumoftracks+=1;
@@ -223,7 +223,7 @@ for (int i = 0; i < nHistograms; ++i) {
    
    
 
-      // if (vP4_piPlus.size() == 0 || vP4_piMinus.size() == 0) continue;
+      if (vP4_piPlus.size() == 0 || vP4_piMinus.size() == 0) continue;
 
          
      
@@ -312,6 +312,15 @@ for (int i = 0; i < nHistograms; ++i) {
    TH1D* hProjpp0[nHistograms];
    TH1D* hProjmm0[nHistograms];
    TH1D* hProjpm0[nHistograms];
+
+   TH1D* hProjpp1[nHistograms];
+   TH1D* hProjmm1[nHistograms];
+   TH1D* hProjpm1[nHistograms];
+
+   TH1D* hProjpp2[nHistograms];
+   TH1D* hProjmm2[nHistograms];
+   TH1D* hProjpm2[nHistograms];
+
    
    for (int i = 0; i < nHistograms; ++i) {
       
@@ -319,20 +328,50 @@ for (int i = 0; i < nHistograms; ++i) {
    hProjmm0[i] = histArraymm[i]->ProjectionX("hProjmm0",0,1);
    hProjpm0[i] = histArraypm[i]->ProjectionX("hProjpm0",0,1);
 
+   hProjpp1[i] = histArraypp[i]->ProjectionX("hProjpp1",1,2);
+   hProjmm1[i] = histArraymm[i]->ProjectionX("hProjmm1",1,2);
+   hProjpm1[i] = histArraypm[i]->ProjectionX("hProjpm1",1,2);
+
+   hProjpp2[i] = histArraypp[i]->ProjectionX("hProjpp2",2,4);
+   hProjmm2[i] = histArraymm[i]->ProjectionX("hProjmm2",2,4);
+   hProjpm2[i] = histArraypm[i]->ProjectionX("hProjpm2",2,4);
+
+   
+
 
    hProjpp0[i]->Sumw2(kTRUE);
    hProjmm0[i]->Sumw2(kTRUE);
    hProjpm0[i]->Sumw2(kTRUE);
+
+   hProjpp1[i]->Sumw2(kTRUE);
+   hProjmm1[i]->Sumw2(kTRUE);
+   hProjpm1[i]->Sumw2(kTRUE);
+
+   hProjpp2[i]->Sumw2(kTRUE);
+   hProjmm2[i]->Sumw2(kTRUE);
+   hProjpm2[i]->Sumw2(kTRUE);
 
    hProjpp0[i]->Multiply(hProjmm0[i]);
    sqrt(hProjpp0[i]);
    hProjpm0[i]->Add(hProjpp0[i],-2.);
    hProjpm0[i]->GetXaxis()->SetTitle("m_{#pi^{-}#pi^{+}} (GeV)");
    hProjpm0[i]->GetYaxis()->SetTitle("Frequency");
+
+   hProjpp1[i]->Multiply(hProjmm1[i]);
+   sqrt(hProjpp1[i]);
+   hProjpm1[i]->Add(hProjpp1[i],-2.);
+   hProjpm1[i]->GetXaxis()->SetTitle("m_{#pi^{-}#pi^{+}} (GeV)");
+   hProjpm1[i]->GetYaxis()->SetTitle("Frequency");
+
+   hProjpp2[i]->Multiply(hProjmm2[i]);
+   sqrt(hProjpp2[i]);
+   hProjpm2[i]->Add(hProjpp2[i],-2.);
+   hProjpm2[i]->GetXaxis()->SetTitle("m_{#pi^{-}#pi^{+}} (GeV)");
+   hProjpm2[i]->GetYaxis()->SetTitle("Frequency");
  
     double lowerBound = i * .2;
     double upperBound = lowerBound + .2;
-    hProjpm0[i]->SetTitle(Form("Invariant mass of #pi^{-}#pi^{+} pairs in Spherocity bins %f < S_{0} < %f", lowerBound, upperBound));
+    hProjpm0[i]->SetTitle(Form("Invariant mass of #pi^{-}#pi^{+} pairs in Spherocity bins %.2f < S_{0} < %.2f and 0.5 < pT < 1 GeV/c", lowerBound, upperBound));
     hProjpm0[i]->SetFillColorAlpha(kMagenta, 0.25);
     hProjpm0[i]->SetMarkerStyle(20);
     hProjpm0[i]->SetMarkerColor(kBlack);
@@ -340,6 +379,21 @@ for (int i = 0; i < nHistograms; ++i) {
     hProjpm0[i]->Draw("E3");
     hProjpm0[i]->Write();
 
+    hProjpm1[i]->SetTitle(Form("Invariant mass of #pi^{-}#pi^{+} pairs in Spherocity bins %.2f < S_{0} < %.2f and 1 < pT < 1.5 GeV/c", lowerBound, upperBound));
+    hProjpm1[i]->SetFillColorAlpha(kMagenta, 0.25);
+    hProjpm1[i]->SetMarkerStyle(20);
+    hProjpm1[i]->SetMarkerColor(kBlack);
+    hProjpm1[i]->SetMarkerSize(0.8);
+    hProjpm1[i]->Draw("E3");
+    hProjpm1[i]->Write();
+
+    hProjpm2[i]->SetTitle(Form("Invariant mass of #pi^{-}#pi^{+} pairs in Spherocity bins %.2f < S_{0} < %.2f and 1.5 < pT < 2.5 GeV/c", lowerBound, upperBound));
+    hProjpm2[i]->SetFillColorAlpha(kMagenta, 0.25);
+   hProjpm2[i]->SetMarkerStyle(20);
+   hProjpm2[i]->SetMarkerColor(kBlack);
+   hProjpm2[i]->SetMarkerSize(0.8);
+   hProjpm2[i]->Draw("E3");
+   hProjpm2[i]->Write();
                       }//end of loop
 
    TH1D *HProjpp0 = hMasspp->ProjectionX("HProjpp0",0,1);
@@ -355,19 +409,6 @@ for (int i = 0; i < nHistograms; ++i) {
    HProjpm0->Add(HProjpp0,-2.);
    HProjpm0->GetXaxis()->SetTitle("m_{#pi^{-}#pi^{+}} (GeV)");
 
-   // TH1D *hProjpp1 = hMasspp->ProjectionX("hProjpp1",1,2);
-   // TH1D *hProjmm1 = hMassmm->ProjectionX("hProjmm1",1,2);
-   // TH1D *hProjpm1 = hMasspm->ProjectionX("hProjpm1",1,2); 
-
-   // hProjpp1->Sumw2(kTRUE);
-   // hProjmm1->Sumw2(kTRUE);
-   // hProjpm1->Sumw2(kTRUE);
-
-   // hProjpp1->Multiply(hProjmm1);
-   // sqrt(hProjpp1);
-   // hProjpm1->Add(hProjpp1,-2.);
-   // hProjpm1->Write();
-
 
    
    HProjpm0->GetXaxis()->SetTitle("m_{#pi^{-}#pi^{+}} (GeV)");
@@ -380,6 +421,9 @@ for (int i = 0; i < nHistograms; ++i) {
 
    HProjpm0->Write();
 
+   hMasspp->Write();
+   hMassmm->Write();
+   hMasspm->Write();
 
    
    hSpherocity->Write();
