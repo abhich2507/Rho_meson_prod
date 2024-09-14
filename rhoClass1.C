@@ -5,6 +5,7 @@
 #include <TCanvas.h>
 #include <Math/Vector4D.h>
 #include <TLorentzVector.h>
+#include "TStopwatch.h"
 // #include "SpherocityCalculator.hh"
 
 void sqrt(TH1* h) {
@@ -26,9 +27,10 @@ void sqrt(TH1* h) {
 
 
 void rhoClass1::Loop()
-{
-   ROOT::EnableImplicitMT();
-   TFile *file = TFile::Open("histograms.root", "RECREATE"); 
+{  TStopwatch timer;
+   
+   TFile *file = TFile::Open("histogramsMT.root", "RECREATE"); 
+
 
    if (fChain == 0) return;
 
@@ -112,18 +114,20 @@ for (int i = 0; i < nHistograms; ++i) {
 
    Double_t mass;
 
-   double rmin1=0.e6 ;
-   double rmax1=9.e6;
+   double rmin1=0e5 ;
+   double rmax1=1e7;
 
 
    for (Long64_t jentry=rmin1; jentry<rmax1;jentry++) {
+   // for (auto jentry : ROOT::TSeqUL(nentries)) {
       Long64_t ientry = LoadTree(jentry);
       if (ientry < 0) break;
 
       nb = fChain->GetEntry(jentry);   nbytes += nb;
       // if (Cut(ientry) < 0) continue;
       if (jentry%50000 == 0) cout << "Processing event " << jentry << endl;
-      if (nTracks <15) continue;
+      timer.Start();
+      // if (nTracks <15) continue;
 
       std::vector<double> ratiosqaure ;
       std::vector<double> vecPx;
@@ -133,12 +137,9 @@ for (int i = 0; i < nHistograms; ++i) {
 
       Int_t sumoftracks = 0;
 
-      
-   
+     
       for (int i = 0; i < nTracks; i++) {
          
-         
-
          double Px= pt[i]*TMath::Cos(phi[i]);
          double Py= pt[i]*TMath::Sin(phi[i]);
          double Pz= pt[i]*TMath::SinH(eta[i]);
@@ -147,20 +148,20 @@ for (int i = 0; i < nHistograms; ++i) {
 
          //track cuts
          if (pcharge[i] == 0) continue;
-         if (TMath::Abs(eta[i])>0.8) continue;
-         if ( pt[i]<0.3 || pt[i]>11) continue;
-         sumPt += pt[i];
+         if (TMath::Abs(eta[i])>1.0) continue;
+         if ( pt[i]<0.5 || pt[i]>11) continue;
 
+         sumPt += pt[i];
+       
          sumoftracks+=1;
 
          vecPx.push_back(Px);
          vecPy.push_back(Py);
-
+         // cout << "1Px: " << Px << " 1Py: " << Py << endl;
          ROOT::Math::PxPyPzEVector vP4;
          vP4.SetPxPyPzE(Px, Py, Pz,E);
          
 
-      
 
          if (pid[i]==211) {
             vP4_piPlus.push_back(vP4);
@@ -172,40 +173,56 @@ for (int i = 0; i < nHistograms; ++i) {
          if (TMath::Abs(pid[i]) == 211) {
             vP4_pi.push_back(vP4); }
 
-     
+         
       }
 
-
+   
+              
    //************************************************Spherocity calculation****************************************************
+  int sumoftracks1 = 0;
+  if( sumoftracks < 3 ) continue;
 
-  if( sumoftracks < 10 ) continue;
+
+//   cout<<"before second loop     : sumoftracks: "<<sumoftracks<<endl;  
    //Spherocity calculation
    for(Int_t itrk = 0; itrk < sumoftracks; itrk++){
 
-       Double_t SumCrosProd = 0.; 
+      double Px= pt[itrk]*TMath::Cos(phi[itrk]);
+      double Py= pt[itrk]*TMath::Sin(phi[itrk]);
+
+      sumoftracks1+=1;
       
       TVector3 vPTi;
       vPTi.SetXYZ( vecPx[itrk], vecPy[itrk], 0. );
+
+      // cout<<"vPTix: "<<vPTi.X()<<" : "<<Px<<" vPTiy: "<<vPTi.Y()<<" : "<<Py<<endl;
+      Double_t SumCrosProd = 0.; 
+      
    
       for(Int_t jtrk = 0; jtrk < sumoftracks; jtrk++){
-	
-	TVector3 vPTj;
-	vPTj.SetXYZ( vecPx[jtrk], vecPy[jtrk], 0. );
-	TVector3 vecCross = vPTj.Cross( vPTi.Unit() );
-	SumCrosProd += vecCross.Mag(); //pt(j)Xnhat(i)
+   
+         TVector3 vPTj;
+         vPTj.SetXYZ( vecPx[jtrk], vecPy[jtrk], 0. );
+       
+         TVector3 vecCross = vPTj.Cross( vPTi.Unit() );
+         SumCrosProd += vecCross.Mag(); //pt(j)Xnhat(i)
+      
 
       }//jtrk---
-
+            
       Double_t RatioSquared = TMath::Power((SumCrosProd/sumPt), 2);
-      
+     
       SphCrossProd.push_back( RatioSquared );
       hSumCrosProd->Fill(SumCrosProd);
+
     }//itrk------
+
     hSumPt->Fill(sumPt);
  
     
     Double_t *SpheroArray;
     Int_t track_size = SphCrossProd.size();
+     
     if( sumoftracks != track_size ) cout <<"Something is wrong here " << endl;
     
     SpheroArray = new Double_t[track_size];
@@ -216,17 +233,19 @@ for (int i = 0; i < nHistograms; ++i) {
     
     Double_t Spherocity = (TMath::Pi()*TMath::Pi()/4.)*minSphero;
     
-
+   //  cout<<"Spherocity: "<<Spherocity<<endl;
     //*****************************************end of spherocity calculation**************************************************
   
     hSpherocity->Fill(Spherocity);
    
+  
+    
    
 
       if (vP4_piPlus.size() == 0 || vP4_piMinus.size() == 0) continue;
 
          
-     
+    
 
       for (int i = 0; i < vP4_piMinus.size(); i++) {
          for (int j = i+1; j < vP4_piMinus.size(); j++) {
@@ -289,12 +308,10 @@ for (int i = 0; i < nHistograms; ++i) {
             hMasspm->Fill(mass,rho_pt);    }
              
          } 
+     
       }
 
      
-
-     
-
 
          vP4_piPlus.clear();
          vP4_piMinus.clear();
@@ -304,8 +321,11 @@ for (int i = 0; i < nHistograms; ++i) {
          SphCrossProd.clear();
 
 
-     
+      timer.Stop();
+   
    }
+
+  timer.Start();
  
    hSumPt->Write();
 
@@ -320,6 +340,7 @@ for (int i = 0; i < nHistograms; ++i) {
    TH1D* hProjpp2[nHistograms];
    TH1D* hProjmm2[nHistograms];
    TH1D* hProjpm2[nHistograms];
+
 
    
    for (int i = 0; i < nHistograms; ++i) {
@@ -395,6 +416,10 @@ for (int i = 0; i < nHistograms; ++i) {
    hProjpm2[i]->Draw("E3");
    hProjpm2[i]->Write();
                       }//end of loop
+    
+   timer.Stop();
+   cout<<"Time taken to fill histograms: "<<timer.CpuTime()<<endl;
+
 
    TH1D *HProjpp0 = hMasspp->ProjectionX("HProjpp0",0,1);
    TH1D *HProjmm0 = hMassmm->ProjectionX("HProjmm0",0,1);
