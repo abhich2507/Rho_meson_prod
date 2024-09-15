@@ -23,7 +23,7 @@ void calculateSpherocity() {
         return;
     }
 
-  const Int_t kMinMult = 5; //minimum multiplicty ---
+  const Int_t kMinMult = 3; //minimum multiplicty ---
   Float_t pmass = 0.9382720813; //mass of proton
 
     // Define the variables for the tree branches
