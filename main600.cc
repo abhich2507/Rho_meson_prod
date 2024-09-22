@@ -13,11 +13,11 @@ void *handle(void *ptr)
 {
 	int ith = (long)ptr;
 
-	TFile *output = new TFile(Form("rho%d.root", ith), "recreate");
+	TFile *output = new TFile(Form("rhoo%d.root", ith), "recreate");
 	TTree *tree = new TTree("tr", "tr");
 	const Int_t nTrackmax = 5000;
 	// int nevent[nTrackmax] = {0};
-	Int_t nevents = 4e5;
+	Int_t nevents = 1e4;
 	Int_t event, nTracks;
 
 	Int_t mult = 0;
@@ -48,12 +48,14 @@ void *handle(void *ptr)
 	pythia.readString("Print:quiet = on");
 	pythia.readString("Beams:idA= 2212");
 	pythia.readString("Beams:idB= 2212");
-	pythia.readString("Beams:eCM= 13.6e3");
-	pythia.readString("SoftQCD:all=on");
-	pythia.readString("Tune:pp=14");
+	pythia.readString("Beams:eCM= 13600");
+	pythia.readString("Tune:pp=14");  //tune 4C 
 	// pythia.readString("PhaseSpace:pTHatMin =5");
-	// pythia.readString("PartonLevel:MPI=on");		  // for MPI
-	// pythia.readString("SoftQCD:nonDiffractive = on"); // for min-bias
+	pythia.readString("PartonLevel:MPI=on");		  // for MPI
+	pythia.readString("SoftQCD:nonDiffractive = on"); // for min-bias
+	pythia.readString("SoftQCD:doubleDiffractive = on");
+    // pythia.readString("SoftQCD:inelastic = on");
+
 
 	pythia.readString("Random:setSeed=on");
 	pythia.readString(Form("Random:seed=%d", ith));
@@ -67,34 +69,25 @@ void *handle(void *ptr)
 
 	for (int ievent = 0; ievent < nevents; ievent++)
 
-	{ // nTrack[i]=(pythia.event.size());
-
-		pythia.next();
+	{ 
+		if (!pythia.next()) continue;
+		
 			
 		nTracks = pythia.event.size();
 
 		if (ievent%10000==0) std::cout << "Event:" << ievent << std::endl;
-
-
 		
-		int charge = 0;
-
-	
-
 		for (Int_t k = 0; k < pythia.event.size(); k++)
 
 		{
-			if ( !pythia.event[k].isFinal() || !pythia.event[k].isCharged()) continue;
-			// 	charge++;
-			if (pythia.event[k].eta() > 2.5 || pythia.event[k].eta() < -2.5)
+			if ( pythia.event[k].isFinal() && pythia.event[k].isCharged())
+			
+			{ if (pythia.event[k].eta() > 1.8 || pythia.event[k].eta() < -1.8)
 				continue;
 
-			if (pythia.event[k].pT() < 0.1)
+			  if (pythia.event[k].pT() < 0.015)
 				continue;
-			
-			
-				
-			// mult++;
+
 			phi[k] = pythia.event[k].phi();
 			pcharge[k] = pythia.event[k].charge();
 			energy[k] = pythia.event[k].e();
@@ -103,10 +96,8 @@ void *handle(void *ptr)
 			theta[k] = pythia.event[k].theta();
 			eta[k] = pythia.event[k].eta();
 			hpcharge->Fill(pcharge[k]);
-			// hpz->Fill(pt[k]);
-			// hpid->Fill(pythia.event[k].id());
-			
-		  
+
+			}
 		} //end of loop over particles
 		tree->Fill();
 		
@@ -123,7 +114,7 @@ void *handle(void *ptr)
 int main()
 {
 
-	int n = 25;
+	int n = 30;
 	TThread *th[n];
 	for (int i = 0; i < n; i++)
 	{
